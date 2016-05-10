@@ -122,7 +122,7 @@ func (ctx *VmContext) lazyAllocateNetworks() error {
 		if err != nil {
 			return err
 		}
-		ctx.interfaceCreated(nic)
+		ctx.interfaceCreated(nic, ctx.Hub)
 		h, g := networkConfigure(nic)
 		ctx.DCtx.(LazyDriverContext).LazyAddNic(ctx, h, g)
 	}
