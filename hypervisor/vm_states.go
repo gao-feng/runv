@@ -412,20 +412,6 @@ func deviceInitHandler(ctx *VmContext, ev VmEvent) bool {
 	case EVENT_INTERFACE_ADD:
 		info := ev.(*InterfaceCreated)
 		ctx.interfaceCreated(info)
-		h := &HostNicInfo{
-			Fd:      uint64(info.Fd.Fd()),
-			Device:  info.HostDevice,
-			Mac:     info.MacAddr,
-			Bridge:  info.Bridge,
-			Gateway: info.Bridge,
-		}
-		g := &GuestNicInfo{
-			Device:  info.DeviceName,
-			Ipaddr:  info.IpAddr,
-			Index:   info.Index,
-			Busaddr: info.PCIAddr,
-		}
-		ctx.DCtx.AddNic(ctx, h, g)
 	case EVENT_INTERFACE_INSERTED:
 		info := ev.(*NetDevInsertedEvent)
 		ctx.netdevInserted(info)

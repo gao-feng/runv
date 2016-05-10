@@ -327,8 +327,24 @@ func (ctx *VmContext) blockdevInserted(info *BlockdevInsertedEvent) {
 
 func (ctx *VmContext) interfaceCreated(info *InterfaceCreated) {
 	ctx.lock.Lock()
-	defer ctx.lock.Unlock()
 	ctx.devices.networkMap[info.Index] = info
+	ctx.lock.Unlock()
+
+	h := &HostNicInfo{
+		Fd:      uint64(info.Fd.Fd()),
+		Device:  info.HostDevice,
+		Mac:     info.MacAddr,
+		Bridge:  info.Bridge,
+		Gateway: info.Bridge,
+	}
+	g := &GuestNicInfo{
+		Device:  info.DeviceName,
+		Ipaddr:  info.IpAddr,
+		Index:   info.Index,
+		Busaddr: info.PCIAddr,
+	}
+
+	ctx.DCtx.AddNic(ctx, h, g)
 }
 
 func (ctx *VmContext) netdevInserted(info *NetDevInsertedEvent) {
