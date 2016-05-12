@@ -123,7 +123,12 @@ func (hp *HyperPod) initPodNetwork(c *Container) error {
 			Ip:     info.Ip,
 		}
 
-		hp.vm.AddNic(info.Index, fmt.Sprintf("eth%d", idx), conf)
+		err = hp.vm.AddNic(info.Index, fmt.Sprintf("eth%d", idx), conf)
+		if err != nil {
+			glog.Error(err)
+			return err
+		}
+
 	}
 	/*
 		go func() {
