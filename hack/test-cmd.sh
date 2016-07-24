@@ -25,3 +25,6 @@ cd ${GOPATH}/src/github.com/hyperhq/hyperd || cancel_and_exit "failed to find hy
 ./configure || cancel_and_exit "failed to configure hyper"
 make || cancel_and_exit "failed to compile hyper"
 hack/test-cmd.sh
+
+# do runv integration-test
+go test -check.v -test.timeout=120m github.com/hyperhq/runv/integration-test
