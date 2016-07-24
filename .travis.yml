@@ -25,7 +25,7 @@ install:
   - cd ${TRAVIS_BUILD_DIR}
   - hack/verify-gofmt.sh
   - hack/validate-vet.sh
-  - ./autogen.sh && ./configure && make
+  - ./autogen.sh && ./configure && make && sudo GOPATH=${GOPATH} PATH=${PATH} GOROOT=${GOROOT} make install
 
 script:
-  - cd ${TRAVIS_BUILD_DIR} && hack/test-cmd.sh
+  - cd ${TRAVIS_BUILD_DIR} && sudo GOPATH=${GOPATH} PATH=${PATH} GOROOT=${GOROOT} hack/test-cmd.sh
