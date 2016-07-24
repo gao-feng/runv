@@ -10,7 +10,7 @@ func (s *RunVSuite) TestStartHelloworld(c *check.C) {
 	spec.Process.Args = []string{"echo", "hello"}
 	c.Assert(s.addSpec(spec), checker.IsNil)
 
-	out, exitCode := s.runvCommand(c, "start", "--bundle", s.bundlePath, "testStartHelloWorld")
+	out, exitCode := s.runvCommand(c, "start", "--bundle", s.bundlePath, "--console", "/dev/pts/ptmx", "testStartHelloWorld")
 	c.Assert(out, checker.Equals, "hello\n")
 	c.Assert(exitCode, checker.Equals, 0)
 }

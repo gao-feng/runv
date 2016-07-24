@@ -24,4 +24,4 @@ build-runv:
 build-containerd:
 	go build -tags "static_build $(HYPER_BULD_TAGS)" -o runv-containerd ./containerd/
 test-integration:
-	cd integration-test && go test -check.v -test.timeout=120m .
+	cd integration-test && go test -check.v -test.timeout=120m ${TESTFLAGS} .
