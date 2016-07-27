@@ -17,6 +17,7 @@ before_install:
   - tar xf lvm2-2_02_131.tar.xz
   - cd lvm2-2_02_131
   - ./configure && make device-mapper && sudo make install
+  - git clone https://github.com/hyperhq/hyperstart.git ${GOPATH}/src/github.com/hyperhq/hyperstart
 
 # override the default `install`, otherwise default `install` will export ${TRAVIS_BUILD_DIR}/Godeps/_workspace as GOPATH
 # see https://docs.travis-ci.com/user/languages/go#Dependency-Management
