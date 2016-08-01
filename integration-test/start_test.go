@@ -7,7 +7,7 @@ import (
 
 func (s *RunVSuite) TestStartHelloworld(c *check.C) {
 	//TODO: enable this after fixing
-	c.Skip("enable this after fixing!")
+	//c.Skip("enable this after fixing!")
 
 	spec := defaultTestSpec
 	spec.Process.Args = []string{"echo", "hello"}
