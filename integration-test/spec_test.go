@@ -32,7 +32,7 @@ func (s *RunVSuite) TestSpecDefault(c *check.C) {
 	c.Assert(err, checker.IsNil)
 
 	// runv spec should generated contents as expected
-	c.Assert(&generatedSpec, checker.DeepEquals, expectedSpec)
+	c.Assert(&generatedSpec, checker.DeepEquals, &expectedSpec)
 
 	// test runv spec with --bundle flag
 	newConfigPath := filepath.Join(s.bundlePath, configFileName)
@@ -57,5 +57,5 @@ func (s *RunVSuite) TestSpecDefault(c *check.C) {
 	c.Assert(err, checker.IsNil)
 
 	// runv spec should generated contents as expected
-	c.Assert(&generatedSpec, checker.DeepEquals, expectedSpec)
+	c.Assert(&generatedSpec, checker.DeepEquals, &expectedSpec)
 }

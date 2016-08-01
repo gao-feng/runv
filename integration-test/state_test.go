@@ -34,7 +34,7 @@ func (s *RunVSuite) TestStateSleep(c *check.C) {
 	ctrName := "testStateSleep"
 	spec := defaultTestSpec
 	spec.Process.Args = []string{"sleep", "10"}
-	c.Assert(s.addSpec(spec), checker.IsNil)
+	c.Assert(s.addSpec(&spec), checker.IsNil)
 	exitChan := make(chan struct{}, 0)
 
 	go func() {

@@ -26,7 +26,7 @@ const (
 )
 
 var (
-	defaultTestSpec = &specs.Spec{
+	defaultTestSpec = specs.Spec{
 		Version: specs.Version,
 		Platform: specs.Platform{
 			OS:   runtime.GOOS,
