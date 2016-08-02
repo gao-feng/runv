@@ -144,24 +144,28 @@ func getClient(address string) types.APIClient {
 	return types.NewAPIClient(conn)
 }
 
-func waitForExit(c types.APIClient, timestamp uint64, container, process string) int {
+func waitForExit(c types.APIClient, timestamp uint64, container, process string, events types.API_EventsClient) int {
+	var err error
+
 	for {
-		events, err := c.Events(netcontext.Background(), &types.EventsRequest{Timestamp: timestamp})
-		if err != nil {
-			fmt.Printf("c.Events error: %v", err)
-			// TODO try to find a way to kill the process ?
-			return -1
-		}
 		for {
 			e, err := events.Recv()
 			if err != nil {
 				time.Sleep(1 * time.Second)
+				fmt.Printf("recv failed: %v\n", err.Error())
 				break
 			}
 			timestamp = e.Timestamp
 			if e.Id == container && e.Type == "exit" && e.Pid == process {
 				return int(e.Status)
 			}
+		}
+
+		events, err = c.Events(netcontext.Background(), &types.EventsRequest{Timestamp: timestamp})
+		if err != nil {
+			fmt.Printf("c.Events error: %v", err)
+			// TODO try to find a way to kill the process ?
+			return -1
 		}
 	}
 }

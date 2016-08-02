@@ -210,6 +210,14 @@ func startContainer(context *cli.Context, container, address string, config *spe
 
 	c := getClient(address)
 	timestamp := uint64(time.Now().Unix())
+
+	events, err := c.Events(netcontext.Background(), &types.EventsRequest{Timestamp: timestamp})
+	if err != nil {
+		fmt.Printf("c.Events error: %v", err)
+		// TODO try to find a way to kill the process ?
+		return -1
+	}
+
 	if _, err := c.CreateContainer(netcontext.Background(), r); err != nil {
 		fmt.Printf("error %v\n", err)
 		return -1
@@ -240,7 +248,7 @@ func startContainer(context *cli.Context, container, address string, config *spe
 			fmt.Printf("create pid-file error %v\n", err)
 		}
 	}
-	return waitForExit(c, timestamp, container, "init")
+	return waitForExit(c, timestamp, container, "init", events)
 
 }
 

@@ -206,6 +206,13 @@ func runProcess(root, container string, config *specs.Process) int {
 	}
 	c := getClient(filepath.Join(root, container, "namespace/namespaced.sock"))
 	timestamp := uint64(time.Now().Unix())
+	events, err := c.Events(netcontext.Background(), &types.EventsRequest{Timestamp: timestamp})
+	if err != nil {
+		fmt.Printf("c.Events error: %v", err)
+		// TODO try to find a way to kill the process ?
+		return -1
+	}
+
 	if _, err := c.AddProcess(netcontext.Background(), p); err != nil {
 		fmt.Printf("error %v\n", err)
 		return -1
@@ -219,5 +226,5 @@ func runProcess(root, container string, config *specs.Process) int {
 		defer term.RestoreTerminal(os.Stdin.Fd(), s)
 		monitorTtySize(c, container, process)
 	}
-	return waitForExit(c, timestamp, container, process)
+	return waitForExit(c, timestamp, container, process, events)
 }
