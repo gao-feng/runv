@@ -54,6 +54,7 @@ type ttyAttachments struct {
 	tty         bool
 	stdioSeq    uint64
 	stderrSeq   uint64
+	wg          *sync.WaitGroup
 	attachments []*TtyIO
 }
 
@@ -75,7 +76,7 @@ func newPts() *pseudoTtys {
 	}
 }
 
-func readTtyMessage(conn *net.UnixConn) (*hyperstartapi.TtyMessage, error) {
+func readTtyMessage(conn *net.UnixConn) (*hyperstartapi.TtyMessage, bool, error) {
 	needRead := 12
 	length := 0
 	read := 0
@@ -90,7 +91,7 @@ func readTtyMessage(conn *net.UnixConn) (*hyperstartapi.TtyMessage, error) {
 		nr, err := conn.Read(buf[:want])
 		if err != nil {
 			glog.Error("read tty data failed")
-			return nil, err
+			return nil, false, err
 		}
 
 		res = append(res, buf[:nr]...)
@@ -103,6 +104,11 @@ func readTtyMessage(conn *net.UnixConn) (*hyperstartapi.TtyMessage, error) {
 			glog.V(1).Infof("data length is %d", length)
 			if length > 12 {
 				needRead = length
+			} else if length < 12 {
+				/* get the ack to input */
+				return &hyperstartapi.TtyMessage{
+					Session: binary.BigEndian.Uint64(res[:8]),
+				}, true, nil
 			}
 		}
 	}
@@ -110,7 +116,7 @@ func readTtyMessage(conn *net.UnixConn) (*hyperstartapi.TtyMessage, error) {
 	return &hyperstartapi.TtyMessage{
 		Session: binary.BigEndian.Uint64(res[:8]),
 		Message: res[12:],
-	}, nil
+	}, false, nil
 }
 
 func waitTtyMessage(ctx *VmContext, conn *net.UnixConn) {
@@ -148,7 +154,7 @@ func waitPts(ctx *VmContext) {
 	go waitTtyMessage(ctx, conn.(*net.UnixConn))
 
 	for {
-		res, err := readTtyMessage(conn.(*net.UnixConn))
+		res, ack, err := readTtyMessage(conn.(*net.UnixConn))
 		if err != nil {
 			glog.V(1).Info("tty socket closed, quit the reading goroutine ", err.Error())
 			ctx.Hub <- &Interrupted{Reason: "tty socket failed " + err.Error()}
@@ -156,7 +162,10 @@ func waitPts(ctx *VmContext) {
 			return
 		}
 		if ta, ok := ctx.ptys.ttys[res.Session]; ok {
-			if len(res.Message) == 0 {
+			if ack {
+				// get ack, enable input
+				ta.wg.Done()
+			} else if len(res.Message) == 0 {
 				glog.V(1).Infof("session %d closed by peer, close pty", res.Session)
 				ta.closed = true
 			} else if ta.closed {
@@ -192,6 +201,7 @@ func newAttachmentsWithTty(persist, isTty bool, tty *TtyIO) *ttyAttachments {
 	ta := &ttyAttachments{
 		persistent: persist,
 		tty:        isTty,
+		wg:         new(sync.WaitGroup),
 	}
 
 	if tty != nil {
@@ -364,7 +374,8 @@ func (pts *pseudoTtys) isLastStdin(session uint64) bool {
 }
 
 func (pts *pseudoTtys) connectStdin(session uint64, tty *TtyIO) {
-	if ta, ok := pts.ttys[session]; !ok || !ta.started {
+	ta, ok := pts.ttys[session]
+	if !ok || !ta.started {
 		return
 	}
 
@@ -410,10 +421,12 @@ func (pts *pseudoTtys) connectStdin(session uint64, tty *TtyIO) {
 
 				mbuf := make([]byte, nr)
 				copy(mbuf, buf[:nr])
+				ta.wg.Add(1)
 				pts.channel <- &hyperstartapi.TtyMessage{
 					Session: session,
 					Message: mbuf[:nr],
 				}
+				ta.wg.Wait()
 			}
 		}()
 	}
