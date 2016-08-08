@@ -509,6 +509,17 @@ func stateStarting(ctx *VmContext, ev VmEvent) {
 				ctx.Become(stateRunning, StateRunning)
 				glog.Info("pod start success ", string(ack.msg))
 			}
+		case EVENT_POD_FINISH:
+			/*
+				Though in hyperstart, ack to start pod is sent before pod finished, but the ack
+				is sent to hub in goroutine, this will cause pod finished is received before ack
+				and cause unexcepted pod finished event in stateStarting. since pod finished event
+				will be removed in future, simply handle pod finished in stateStarting here to avoid
+				this bug.
+			*/
+			result := ev.(*PodFinished)
+			ctx.reportPodFinished(result)
+			ctx.exitVM(false, "", true, false)
 		case ERROR_CMD_FAIL:
 			ack := ev.(*CommandError)
 			if ack.reply.Code == hyperstartapi.INIT_STARTPOD {
