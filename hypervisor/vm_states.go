@@ -9,6 +9,7 @@ import (
 	"github.com/golang/glog"
 	hyperstartapi "github.com/hyperhq/runv/hyperstart/api/json"
 	"github.com/hyperhq/runv/hypervisor/pod"
+	"github.com/hyperhq/runv/hypervisor/types"
 )
 
 // states
@@ -505,6 +506,25 @@ func stateStarting(ctx *VmContext, ev VmEvent) {
 				time.Sleep(time.Millisecond)
 				ctx.Hub <- ev
 			}()
+		case EVENT_PROCESS_FINISH:
+			result := ev.(*ProcessFinished)
+			kind := types.E_CONTAINER_FINISHED
+			id := ctx.LookupBySession(result.session)
+			glog.V(1).Infof("session %d, exit code %d", result.session, result.code)
+
+			if id == "" {
+				if id = ctx.LookupExecBySession(result.session); id != "" {
+					kind = types.E_EXEC_FINISHED
+					//remove exec automatically
+					ctx.DeleteExec(id)
+				}
+			}
+
+			if id != "" {
+				ctx.reportProcessFinished(kind, &types.ProcessFinished{
+					Id: id, Code: result.code,
+				})
+			}
 		case ERROR_CMD_FAIL:
 			ack := ev.(*CommandError)
 			if ack.reply.Code == hyperstartapi.INIT_STARTPOD {
@@ -542,6 +562,25 @@ func stateRunning(ctx *VmContext, ev VmEvent) {
 			result := ev.(*PodFinished)
 			ctx.reportPodFinished(result)
 			ctx.exitVM(false, "", true, false)
+		case EVENT_PROCESS_FINISH:
+			result := ev.(*ProcessFinished)
+			kind := types.E_CONTAINER_FINISHED
+			id := ctx.LookupBySession(result.session)
+			glog.V(1).Infof("session %d, exit code %d", result.session, result.code)
+
+			if id == "" {
+				if id = ctx.LookupExecBySession(result.session); id != "" {
+					kind = types.E_EXEC_FINISHED
+					//remove exec automatically
+					ctx.DeleteExec(id)
+				}
+			}
+
+			if id != "" {
+				ctx.reportProcessFinished(kind, &types.ProcessFinished{
+					Id: id, Code: result.code,
+				})
+			}
 		case COMMAND_GET_POD_STATS:
 			ctx.reportPodStats(ev)
 		case EVENT_INTERFACE_EJECTED:

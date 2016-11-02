@@ -1,6 +1,7 @@
 package hypervisor
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -51,6 +52,7 @@ type ExecStatus struct {
 	Cmds      string
 	Terminal  bool
 	ExitCode  uint8
+	Wg        *sync.WaitGroup
 }
 
 type LogStatus struct {
@@ -142,17 +144,22 @@ func (mypod *PodStatus) SetExecStatus(execId string, code uint8) {
 	exec, ok := mypod.Execs[execId]
 	if ok {
 		exec.ExitCode = code
+		exec.Wg.Done()
 	}
 }
 
 func (mypod *PodStatus) AddExec(containerId, execId, cmds string, terminal bool) {
-	mypod.Execs[execId] = &ExecStatus{
+	exec := &ExecStatus{
 		Container: containerId,
 		Id:        execId,
 		Cmds:      cmds,
 		Terminal:  terminal,
 		ExitCode:  255,
+		Wg:        new(sync.WaitGroup),
 	}
+
+	exec.Wg.Add(1)
+	mypod.Execs[execId] = exec
 }
 
 func (mypod *PodStatus) DeleteExec(execId string) {
@@ -165,10 +172,20 @@ func (mypod *PodStatus) CleanupExec() {
 
 func (mypod *PodStatus) GetExec(execId string) *ExecStatus {
 	if exec, ok := mypod.Execs[execId]; ok {
+		exec.Wg.Wait()
 		return exec
 	}
 
 	return nil
+}
+
+func (mypod *PodStatus) WaitForExec(execId string) error {
+	if exec, ok := mypod.Execs[execId]; ok {
+		exec.Wg.Wait()
+		return nil
+	}
+
+	return fmt.Errorf("cannot find exec %v\n", execId)
 }
 
 func (mypod *PodStatus) GetPodIP(vm *Vm) []string {

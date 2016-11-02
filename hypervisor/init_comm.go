@@ -114,6 +114,7 @@ func ReadVmMessage(conn *net.UnixConn) (*hyperstartapi.DecodedMessage, error) {
 		}
 	}
 
+	glog.Infof("get type %v", binary.BigEndian.Uint32(res[:4]))
 	return &hyperstartapi.DecodedMessage{
 		Code:    binary.BigEndian.Uint32(res[:4]),
 		Message: res[8:],
@@ -283,6 +284,16 @@ func waitCmdToInit(ctx *VmContext, init *net.UnixConn) {
 			ctx.Hub <- &PodFinished{
 				result: results,
 			}
+		} else if cmd.Code == hyperstartapi.INIT_FINISHPROCESS {
+			session := binary.BigEndian.Uint64(cmd.retMsg[:8])
+			code := cmd.retMsg[8]
+			oom := cmd.retMsg[9]
+			ctx.Hub <- &ProcessFinished{
+				session: session,
+				code:    code,
+				oom:     oom,
+			}
+			glog.V(1).Infof("Process %v finished, exit code %v", session, code)
 		} else {
 			if cmd.Code == hyperstartapi.INIT_NEXT {
 				glog.V(1).Infof("get command NEXT")
@@ -356,7 +367,8 @@ func waitInitAck(ctx *VmContext, init *net.UnixConn) {
 			ctx.Hub <- &Interrupted{Reason: "init socket failed " + err.Error()}
 			return
 		} else if res.Code == hyperstartapi.INIT_ACK || res.Code == hyperstartapi.INIT_NEXT ||
-			res.Code == hyperstartapi.INIT_ERROR || res.Code == hyperstartapi.INIT_FINISHPOD {
+			res.Code == hyperstartapi.INIT_ERROR || res.Code == hyperstartapi.INIT_FINISHPOD ||
+			res.Code == hyperstartapi.INIT_FINISHPROCESS {
 			ctx.vm <- &hyperstartCmd{Code: res.Code, retMsg: res.Message}
 		}
 	}

@@ -167,14 +167,7 @@ func waitPts(ctx *VmContext) {
 		if ta, ok := ctx.ptys.ttys[res.Session]; ok {
 			if len(res.Message) == 0 {
 				glog.V(1).Infof("session %d closed by peer, close pty", res.Session)
-				ta.closed = true
-			} else if ta.closed {
-				var code uint8 = 255
-				if len(res.Message) == 1 {
-					code = uint8(res.Message[0])
-				}
-				glog.V(1).Infof("session %d, exit code %d", res.Session, code)
-				ctx.ptys.Close(ctx, res.Session, code)
+				ctx.ptys.Close(ctx, res.Session)
 			} else {
 				for _, tty := range ta.attachments {
 					if tty.Stdout != nil && res.Session == ta.stdioSeq {
@@ -299,28 +292,8 @@ func (pts *pseudoTtys) Detach(ta *ttyAttachments, tty *TtyIO) {
 	tty.Close()
 }
 
-func (pts *pseudoTtys) Close(ctx *VmContext, session uint64, code uint8) {
+func (pts *pseudoTtys) Close(ctx *VmContext, session uint64) {
 	if ta, ok := pts.ttys[session]; ok {
-		ack := make(chan bool, 1)
-		kind := types.E_CONTAINER_FINISHED
-		id := ctx.LookupBySession(session)
-
-		if id == "" {
-			if id = ctx.LookupExecBySession(session); id != "" {
-				kind = types.E_EXEC_FINISHED
-				//remove exec automatically
-				ctx.DeleteExec(id)
-			}
-		}
-
-		if id != "" {
-			ctx.reportProcessFinished(kind, &types.ProcessFinished{
-				Id: id, Code: code, Ack: ack,
-			})
-			// wait for pod handler setting up exitcode for container
-			<-ack
-		}
-
 		pts.lock.Lock()
 		ta.close()
 		delete(pts.ttys, ta.stdioSeq)

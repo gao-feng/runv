@@ -37,6 +37,8 @@ func (c *Container) run(p *Process) {
 			c.ownerPod.sv.reap(c.Id, p.Id)
 			return
 		}
+		glog.V(3).Infof("send eventContainerStart")
+
 		e := Event{
 			ID:        c.Id,
 			Type:      EventContainerStart,
@@ -63,7 +65,7 @@ func (c *Container) run(p *Process) {
 
 func (c *Container) start(p *Process) error {
 	// save the state
-	glog.V(3).Infof("save state id %s, boundle %s", c.Id, c.BundlePath)
+	glog.V(3).Infof("save state id %s, bundle %s", c.Id, c.BundlePath)
 	stateDir := filepath.Join(c.ownerPod.sv.StateDir, c.Id)
 	_, err := os.Stat(stateDir)
 	if err == nil {

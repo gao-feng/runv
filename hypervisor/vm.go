@@ -180,13 +180,11 @@ func (vm *Vm) handlePodEvent(mypod *PodStatus) {
 			ps, ok := Response.Data.(*types.ProcessFinished)
 			if ok {
 				mypod.SetOneContainerStatus(ps.Id, ps.Code)
-				close(ps.Ack)
 			}
 		case types.E_EXEC_FINISHED:
 			ps, ok := Response.Data.(*types.ProcessFinished)
 			if ok {
 				mypod.SetExecStatus(ps.Id, ps.Code)
-				close(ps.Ack)
 			}
 		case types.E_POD_FINISHED: // successfully exit
 			mypod.SetPodContainerStatus(Response.Data.([]uint32))
@@ -525,7 +523,12 @@ func (vm *Vm) Exec(container, execId, cmd string, terminal bool, tty *TtyIO) err
 	if err := json.Unmarshal([]byte(cmd), &command); err != nil {
 		return err
 	}
-	return vm.AddProcess(container, execId, terminal, command, []string{}, "/", tty)
+
+	if err := vm.AddProcess(container, execId, terminal, command, []string{}, "/", tty); err != nil {
+		return err
+	}
+
+	return vm.Pod.WaitForExec(execId)
 }
 
 func (vm *Vm) AddProcess(container, execId string, terminal bool, args []string, env []string, workdir string, tty *TtyIO) error {
@@ -563,7 +566,7 @@ func (vm *Vm) AddProcess(container, execId string, terminal bool, args []string,
 		result <- nil
 	}, StateRunning)
 
-	return tty.WaitForFinish()
+	return nil
 }
 
 func (vm *Vm) NewContainer(c *pod.UserContainer, info *ContainerInfo) error {

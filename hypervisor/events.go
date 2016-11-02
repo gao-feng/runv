@@ -26,6 +26,12 @@ type PodFinished struct {
 	result []uint32
 }
 
+type ProcessFinished struct {
+	session uint64
+	code    uint8
+	oom     uint8
+}
+
 type VmTimeout struct{}
 
 type InitFailedEvent struct {
@@ -192,6 +198,7 @@ func (qe *VmExit) Event() int                { return EVENT_VM_EXIT }
 func (qe *VmKilledEvent) Event() int         { return EVENT_VM_KILL }
 func (qe *VmTimeout) Event() int             { return EVENT_VM_TIMEOUT }
 func (qe *PodFinished) Event() int           { return EVENT_POD_FINISH }
+func (qe *ProcessFinished) Event() int       { return EVENT_PROCESS_FINISH }
 func (qe *InitConnectedEvent) Event() int    { return EVENT_INIT_CONNECTED }
 func (qe *ContainerCreatedEvent) Event() int { return EVENT_CONTAINER_ADD }
 func (qe *ContainerUnmounted) Event() int    { return EVENT_CONTAINER_DELETE }
