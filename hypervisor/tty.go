@@ -36,6 +36,7 @@ type pseudoTtys struct {
 	channel  chan *hyperstartapi.TtyMessage
 	ttys     map[uint64]*ttyAttachments
 	lock     sync.Mutex
+	wg       sync.WaitGroup
 }
 
 func newPts() *pseudoTtys {
@@ -238,6 +239,7 @@ func (pts *pseudoTtys) Remove(session uint64) {
 		if ta.stderrSeq > 0 {
 			delete(pts.ttys, ta.stderrSeq)
 		}
+		pts.wg.Done()
 	}
 }
 
@@ -253,8 +255,14 @@ func (pts *pseudoTtys) StdioConnect(stdioSeq, stderrSeq uint64, tty *TtyIO) {
 		if stderrSeq > 0 {
 			pts.ttys[stderrSeq] = ta
 		}
+		pts.wg.Add(1)
 	}
 	pts.lock.Unlock()
+}
+
+func (pts *pseudoTtys) WaitForClose() {
+	pts.wg.Wait()
+	glog.V(3).Info("all of ptys are closed")
 }
 
 func (pts *pseudoTtys) startStdin(session uint64) {

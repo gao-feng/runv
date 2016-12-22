@@ -196,8 +196,15 @@ func (ctx *VmContext) shutdownVM(err bool, msg string) {
 		ctx.reportVmFault(msg)
 		glog.Error("Shutting down because of an exception: ", msg)
 	}
-	ctx.setTimeout(10)
-	ctx.vm <- &hyperstartCmd{Code: hyperstartapi.INIT_DESTROYPOD}
+
+	go func() {
+		// wait for pty closed
+		ctx.ptys.WaitForClose()
+		// shutdown command is sent after all of containers are exited
+		ctx.setTimeout(10)
+		ctx.vm <- &hyperstartCmd{Code: hyperstartapi.INIT_DESTROYPOD}
+	}()
+
 }
 
 func (ctx *VmContext) poweroffVM(err bool, msg string) {
